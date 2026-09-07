@@ -4,7 +4,6 @@ import { stat } from 'node:fs/promises'
 import type { Context } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-agent-presets'
 import type { ImageAttachmentLimits } from '@deepseek-ai/dsh-attachment'
-import { SessionLogOffset } from '@deepseek-ai/dsh-session'
 import type { Session, SessionEvent, SessionHeader, SessionId } from '@deepseek-ai/dsh-session'
 import type {} from '@deepseek-ai/dsh-session-projection'
 import type {} from '@deepseek-ai/dsh-session-projection-cache'
@@ -330,9 +329,7 @@ export class ApiSessionList {
   ): SessionProjectionHints | undefined {
     try {
       const block = session === undefined
-        ? header.isSeeded
-          ? undefined
-          : this.ctx.get('sessionProjectionCache')?.cachedSnapshot(header, SessionLogOffset(0))
+        ? this.ctx.get('sessionProjectionCache')?.cachedSnapshot(header)
         : this.ctx.sessionProjections.cachedSnapshot(session)
       return block !== undefined && Object.keys(block.values).length > 0
         ? {

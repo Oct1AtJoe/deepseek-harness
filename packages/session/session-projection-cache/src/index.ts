@@ -128,15 +128,15 @@ export class SessionProjectionCache extends Service {
    * paths (the history tail baseline) supersede these values whenever a
    * session is actually opened.
    * @param meta - the listed session's header (identity witness; no log read).
-   * @param inheritedEventCount - exact inherited prefix length that completes
-   * the checkpoint identity.
+   * @param inheritedEventCount - optional exact inherited prefix length that completes
+   * the checkpoint identity. Omit when the cut is unknown (e.g. cold header-only listing).
    * @param keys - optional projection keys required by the caller's audience.
    * @returns the cut (`asOfSeq` = lowest served-row watermark), or
    *   `undefined` when no usable row exists for this lifecycle.
    */
   cachedSnapshot(
     meta: SessionHeader,
-    inheritedEventCount: SessionLogOffset,
+    inheritedEventCount?: SessionLogOffset,
     keys?: readonly Extract<keyof SessionProjectionMap, string>[],
   ): ProjectionSnapshot | undefined {
     const record = this.recordFor(meta.id, identityOf(meta, inheritedEventCount))
@@ -353,8 +353,15 @@ export class SessionProjectionCache extends Service {
 /** Project a header onto the identity fields a record is bound to. */
 function identityOf(
   header: SessionHeader,
-  inheritedEventCount: SessionLogOffset,
+  inheritedEventCount?: SessionLogOffset,
 ): CheckpointIdentity {
+  if (inheritedEventCount === undefined) {
+    return {
+      createdAt: header.createdAt,
+      ...header.cwd === undefined ? {} : { cwd: header.cwd },
+      isSeeded: header.isSeeded,
+    }
+  }
   const cut = SessionLogOffset(inheritedEventCount)
   if (!header.isSeeded && cut !== 0) {
     throw new Error('unseeded projection-cache identity inherited event count must be 0')
@@ -378,7 +385,7 @@ function identityMatches(stored: CheckpointIdentity, expected: CheckpointIdentit
   return stored.createdAt === expected.createdAt
     && stored.cwd === expected.cwd
     && (stored.isSeeded ?? false) === expected.isSeeded
-    && (stored.inheritedEventCount ?? 0) === expected.inheritedEventCount
+    && (expected.inheritedEventCount === undefined || (stored.inheritedEventCount ?? 0) === expected.inheritedEventCount)
 }
 
 export default SessionProjectionCache

@@ -71,6 +71,7 @@ describe('sessions.list cold merge', () => {
       header('large-unknown', 300),
       header('cached-nonblank', 400),
       header('seeded-cold', 450, { isSeeded: true }),
+      header('seeded-cached', 460, { isSeeded: true }),
       header('locationless', 500, { parentSession: sid('session-parent'), origin: 'subagent' }),
       header('vanished', 600),
       header('read-failure', 700),
@@ -102,7 +103,7 @@ describe('sessions.list cold merge', () => {
     providePersistence(ctx, {
       list: () => Promise.resolve(metas),
       locate: (meta: SessionHeader) => {
-        if (meta.id === sid('large-unknown') || meta.id === sid('seeded-cold')) {
+        if (meta.id === sid('large-unknown') || meta.id === sid('seeded-cold') || meta.id === sid('seeded-cached')) {
           return { kind: 'jsonl', path: largePath }
         }
         if (meta.id === sid('locationless')) return undefined
@@ -112,8 +113,8 @@ describe('sessions.list cold merge', () => {
       inspect,
     })
     ctx.provide('sessionProjectionCache', {
-      cachedSnapshot: (meta: SessionHeader) => {
-        if (meta.id === sid('seeded-cold')) throw new Error('seeded cold listing must not guess a body cut')
+      cachedSnapshot: (meta: SessionHeader, inheritedEventCount?: SessionLogOffset) => {
+        if (inheritedEventCount !== undefined) throw new Error('seeded cold listing must not guess a body cut')
         if (meta.id === sid('small-blank')) {
           return { asOfSeq: SessionSeq(0), values: { sessionListMetadata: { blank: true, lastPromptAt: null } } }
         }
@@ -122,6 +123,9 @@ describe('sessions.list cold merge', () => {
         }
         if (meta.id === sid('cached-nonblank')) {
           return { asOfSeq: SessionSeq(1), values: { sessionListMetadata: { blank: false, lastPromptAt: 1000 } } }
+        }
+        if (meta.id === sid('seeded-cached')) {
+          return { asOfSeq: SessionSeq(2), values: { sessionListMetadata: { blank: false, lastPromptAt: 1500 }, title: 'Seeded Cached' } }
         }
         return undefined
       },
@@ -139,6 +143,11 @@ describe('sessions.list cold merge', () => {
     expect(byId['large-unknown']).toMatchObject({ blank: false, updatedAt: 300 })
     expect(byId['cached-nonblank']).toMatchObject({ blank: false, updatedAt: 1000 })
     expect(byId['seeded-cold']).toMatchObject({ blank: false, updatedAt: 450 })
+    expect(byId['seeded-cached']).toMatchObject({
+      blank: false,
+      updatedAt: 1500,
+      projections: { values: expect.objectContaining({ title: 'Seeded Cached' }) as never },
+    })
     expect(byId['locationless']).toMatchObject({
       blank: false,
       updatedAt: 500,

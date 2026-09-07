@@ -58,7 +58,7 @@ Three mandatory points always write: session creation persists the seed-derived 
 
 ### Reading cached values
 
-`cachedSnapshot(meta, inheritedEventCount)` synchronously serves client values from the storage domain's in-memory tables with zero I/O. It accepts only an identity-matching record and version- and schema-matching keys, then returns a `{ asOfSeq, values }` cut at the lowest served-row watermark. An unseeded listing knows that its cut is zero; a seeded header-only listing does not know the numeric cut and must skip this fast path until an authoritative body read supplies it. `coldSnapshot(meta, inheritedEventCount, events)` accepts the exact cut with a complete ordered log, skips the checkpointed prefix while folding, and refreshes the record without reading persistence itself.
+`cachedSnapshot(meta, inheritedEventCount?)` synchronously serves client values from the storage domain's in-memory tables with zero I/O. It accepts only an identity-matching record and version- and schema-matching keys, then returns a `{ asOfSeq, values }` cut at the lowest served-row watermark. When omitted, the numeric cut is accepted for matching lifecycle identity (`createdAt`, `cwd`, `isSeeded`). `coldSnapshot(meta, inheritedEventCount, events)` accepts the exact cut with a complete ordered log, skips the checkpointed prefix while folding, and refreshes the record without reading persistence itself.
 
 ### What the cache guarantees
 

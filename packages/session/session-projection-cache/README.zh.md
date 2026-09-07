@@ -58,7 +58,7 @@ kind: "package-reference"
 
 ### 读取缓存值
 
-`cachedSnapshot(meta, inheritedEventCount)` 以零 I/O 从存储域的内存表同步提供客户端值。它只接受身份匹配的记录以及版本和 schema 均匹配的 key，再按所服务行的最低水位返回 `{ asOfSeq, values }` 切面。未 seeded 的列表知道切点为零；仅 header 的 seeded 列表不知道数字切点，必须跳过该快速路径，直到权威正文读取提供它。`coldSnapshot(meta, inheritedEventCount, events)` 接受精确切点与完整有序日志，在折叠时跳过已检查点化的前缀，并在自身不读取持久化层的情况下刷新记录。
+`cachedSnapshot(meta, inheritedEventCount?)` 以零 I/O 从存储域的内存表同步提供客户端值。它只接受身份匹配的记录以及版本和 schema 均匹配的 key，再按所服务行的最低水位返回 `{ asOfSeq, values }` 切面。未指定数字切点时按 header 生命周期身份（`createdAt`、`cwd`、`isSeeded`）匹配。`coldSnapshot(meta, inheritedEventCount, events)` 接受精确切点与完整有序日志，在折叠时跳过已检查点化的前缀，并在自身不读取持久化层的情况下刷新记录。
 
 ### 缓存保证什么
 
