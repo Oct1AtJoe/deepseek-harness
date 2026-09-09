@@ -35,6 +35,8 @@ kind: "package-reference"
 
 每个 profile 都可以设置 `retryPolicy`；省略时使用 normal mode、最多重试五次。`apiKeyEnv` 是按请求经 harness 凭据 seam 解析的凭据引用，因此配置文件绝不包含密钥；解析为空的引用会让请求以 `MISSING_CREDENTIAL` 失败。省略它会让路由保持已配置但无密钥（configured-but-keyless）状态，对已安装目录路由而言即交由 pi-ai 提供方原生的环境发现。
 
+按会话路由或缓存的网关会要求把会话 id 放在它自选的标头里：OpenCode 的 Go 网关要求 `x-opencode-session`，服务它的路由设置 `sessionHeader: x-opencode-session`。此后每个点名会话的请求都会携带该 id——在会话的各轮次、恢复、压缩与重试之间保持稳定——且配置的标头会替换同名的 `headers` 条目，因为单一固定值无法承担按会话 id 的职责。未点名会话的请求不会发送该标头。
+
 ```yaml
 - name: '@deepseek-ai/dsh-llm-pi-ai'
   config:
@@ -79,6 +81,8 @@ kind: "package-reference"
 | `models` | 已安装目录 | 整体替换路由目录；每个条目从已安装模型取默认值 |
 | `modelOverrides` | 无 | 重塑个别已安装目录模型，而不替换其余模型 |
 | `compat` | 目录检测 | 无法识别端点的协议兼容开关 |
+| `headers` | 无 | 额外的提供方请求标头；harness 署名标头在重名时胜出 |
+| `sessionHeader` | 无 | 在每个点名会话的请求上携带会话 id 的标头名 |
 | `defaultContextWindow` | `262,144` | 未描述模型的容量回退 |
 | `defaultMaxTokens` | `32,768` | 未描述模型的输出上限回退 |
 | `requestImagePixelBudget` | `4,194,304` | 每张确定性请求图片的总像素预算 |

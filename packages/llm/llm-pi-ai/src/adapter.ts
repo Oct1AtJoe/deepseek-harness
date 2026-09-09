@@ -201,14 +201,36 @@ function reasoningInfo(
   }
 }
 
-/** Merge deployment headers while removing case-insensitive attribution collisions. */
-function requestHeaders(headers: Readonly<Record<string, string>> | undefined): Record<string, string> {
+/**
+ * Merge deployment headers while removing case-insensitive attribution
+ * collisions, then stamp the conversation's session id under the profile's
+ * configured session header. The session value replaces a same-named
+ * deployment header because one fixed value cannot do a per-conversation id's
+ * job; attribution still wins a reserved name.
+ * @param headers - the profile's deployment headers, when any.
+ * @param sessionHeader - the profile's session-header name, when configured.
+ * @param sessionId - the conversation this request belongs to, when it names one.
+ * @returns headers to merge into the pi-ai request.
+ */
+function requestHeaders(
+  headers: Readonly<Record<string, string>> | undefined,
+  sessionHeader: string | undefined,
+  sessionId: string | undefined,
+): Record<string, string> {
   const attribution = attributionHeaders()
   const reserved = new Set(Object.keys(attribution).map(name => name.toLowerCase()))
-  return {
-    ...Object.fromEntries(Object.entries(headers ?? {}).filter(([name]) => !reserved.has(name.toLowerCase()))),
-    ...attribution,
-  }
+  const carriesSession = sessionHeader !== undefined && sessionId !== undefined
+  // The session value replaces a same-named deployment header, so that entry is
+  // dropped while building the configured set rather than overwritten in place.
+  const sessionName = carriesSession ? sessionHeader.toLowerCase() : undefined
+  const configured = Object.fromEntries(
+    Object.entries(headers ?? {}).filter(([name]) => {
+      const lower = name.toLowerCase()
+      return !reserved.has(lower) && lower !== sessionName
+    }),
+  )
+  const session = carriesSession ? { [sessionHeader]: sessionId } : {}
+  return { ...configured, ...session, ...attribution }
 }
 
 /**
@@ -385,7 +407,11 @@ export class PiAiAdapter extends LlmAdapter {
         signal: watchdog.signal,
         // Profile headers are deployment-owned; attribution names are
         // Harness-owned and therefore win collisions.
-        headers: requestHeaders(profile.headers),
+        headers: requestHeaders(
+          profile.headers,
+          profile.sessionHeader,
+          options.sessionId === undefined ? undefined : String(options.sessionId),
+        ),
       })
       const iterator = toStreamChunks(events, model.contextWindow, options.signal, model.id)[Symbol.asyncIterator]()
       let exhausted = false

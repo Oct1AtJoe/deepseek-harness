@@ -35,6 +35,8 @@ Choose this adapter when the same composition serves several providers, when a r
 
 Each profile may set a `retryPolicy`; omission uses normal mode with five retries. `apiKeyEnv` is a credential reference resolved per request through the harness credential seam, so no secret enters the configuration file; a reference that resolves to nothing fails the request with `MISSING_CREDENTIAL`. Omitting it leaves the route configured-but-keyless, which for an installed catalog route defers to pi-ai's provider-native ambient discovery.
 
+A gateway that routes or caches by conversation asks for the conversation id in a header of its own naming: OpenCode's Go gateway requires `x-opencode-session`, and a route serving it sets `sessionHeader: x-opencode-session`. Every request that names a session then carries that id — stable across the conversation's turns, resumes, compactions, and retries — and the configured header replaces a same-named `headers` entry, because one fixed value cannot do a per-conversation id's job. A request that names no session sends nothing under it.
+
 ```yaml
 - name: '@deepseek-ai/dsh-llm-pi-ai'
   config:
@@ -79,6 +81,8 @@ Each profile may set a `retryPolicy`; omission uses normal mode with five retrie
 | `models` | installed catalog | Replaces the route's catalog wholesale; each entry defaults from the installed model |
 | `modelOverrides` | none | Reshapes individual installed-catalog models without replacing the rest |
 | `compat` | catalog detection | Wire-compatibility switches for unrecognized endpoints |
+| `headers` | none | Extra provider request headers; Harness attribution wins reserved names |
+| `sessionHeader` | absent | Header name carrying the conversation's session id on every request that names one |
 | `defaultContextWindow` | `262,144` | Capacity fallback for undescribed models |
 | `defaultMaxTokens` | `32,768` | Output-cap fallback for undescribed models |
 | `requestImagePixelBudget` | `4,194,304` | Total-pixel budget for each deterministic request image |

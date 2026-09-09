@@ -123,6 +123,19 @@ describe('PiAiAdapter provider routing', () => {
     expect(server.headers[0]?.['user-agent']).toBe(userAgent())
   })
 
+  it('stamps the conversation id under the configured session header', async () => {
+    const server = await mockServer([{ events: textEvents }, { events: textEvents }])
+    const ctx = await harness(server.url, {
+      headers: { 'X-Opencode-Session': 'static-value' },
+      sessionHeader: 'x-opencode-session',
+    })
+    await assemble(ctx, { model: 'deepseek-v4-flash', messages: [], sessionId: 'session-abc' as never })
+    await assemble(ctx, { model: 'deepseek-v4-flash', messages: [] })
+    expect(server.headers[0]?.['x-opencode-session']).toBe('session-abc')
+    // A request naming no conversation keeps the deployment's static entry.
+    expect(server.headers[1]?.['x-opencode-session']).toBe('static-value')
+  })
+
   it('forwards common stream options and profile reasoning', async () => {
     const server = await mockServer([{ events: textEvents }])
     const ctx = await harness(server.url, {
@@ -843,6 +856,12 @@ describe('provider profile lifecycle', () => {
   ])('rejects provider header %j when Fetch cannot represent the entry', (name, value) => {
     expect(() => resolveProfiles({ openai: { headers: { [name]: value } } }))
       .toThrow(`provider "openai" header "${name}" is not valid for Fetch`)
+  })
+
+  it('rejects a session header name Fetch cannot put on a request', () => {
+    expect(() => resolveProfiles({ openai: { sessionHeader: '' } })).toThrow(/empty sessionHeader/)
+    expect(() => resolveProfiles({ openai: { sessionHeader: 'bad header name' } }))
+      .toThrow('provider "openai" header "bad header name" is not valid for Fetch')
   })
 
   it.each(['maxRetries', 'maxRetryDelayMs'] as const)(

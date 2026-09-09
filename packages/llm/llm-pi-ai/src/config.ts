@@ -149,6 +149,14 @@ export interface PiAiProviderProfile {
   defaultInput?: PiAiModality[]
   /** Provider request headers, validated against Fetch when the profile resolves; Harness attribution wins reserved names. */
   headers?: Record<string, string>
+  /**
+   * Request header name carrying the conversation's session id, for a gateway
+   * that routes or caches per conversation — OpenCode's Go gateway requires
+   * `x-opencode-session`. Sent only on requests that name a session, and it
+   * replaces a same-named `headers` entry: one fixed value cannot do a
+   * per-conversation id's job.
+   */
+  sessionHeader?: string
   /** Provider-neutral pi-ai reasoning level. */
   reasoning?: ModelThinkingLevel
   /** Token budgets used by reasoning providers that support them. */
@@ -331,6 +339,7 @@ const profile = z.object({
   defaultMaxTokens: z.number().step(1).min(1).default(DEFAULT_MAX_TOKENS),
   defaultInput: z.array(z.union(MODALITIES)).default([...DEFAULT_INPUT]),
   headers: z.dict(z.string()),
+  sessionHeader: z.string(),
   reasoning: z.union(THINKING_LEVELS),
   thinkingBudgets,
   cacheRetention: z.union(['none', 'short', 'long']),
@@ -422,6 +431,12 @@ export function resolveProfiles(
       throw new Error(`llm-pi-ai: provider "${provider}" has an empty displayName`)
     }
     assertValidHeaders(provider, source.headers)
+    if (source.sessionHeader !== undefined) {
+      if (source.sessionHeader.length === 0) {
+        throw new Error(`llm-pi-ai: provider "${provider}" has an empty sessionHeader`)
+      }
+      assertValidHeaders(provider, { [source.sessionHeader]: 'session' })
+    }
     const streamIdleTimeoutMs = source.streamIdleTimeoutMs ?? DEFAULT_STREAM_IDLE_TIMEOUT_MS
     if (!Number.isFinite(streamIdleTimeoutMs)
       || streamIdleTimeoutMs <= 0
