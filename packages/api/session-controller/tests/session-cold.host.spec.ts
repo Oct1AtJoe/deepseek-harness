@@ -151,9 +151,6 @@ describe('sessions.list cold merge', () => {
         if (meta.id === sid('cached-conversation')) {
           return { asOfSeq: 1, values: { sessionListMetadata: { blank: false, lastPromptAt: 1000 } } }
         }
-        if (meta.id === sid('seeded-cached')) {
-          return { asOfSeq: SessionSeq(2), values: { sessionListMetadata: { blank: false, lastPromptAt: 1500 }, title: 'Seeded Cached' } }
-        }
         return undefined
       },
       cachedPredecessorTitle: () => undefined,
