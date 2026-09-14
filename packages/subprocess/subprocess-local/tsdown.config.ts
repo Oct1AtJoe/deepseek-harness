@@ -1,7 +1,10 @@
 import { defineConfig } from 'tsdown'
 
 export default defineConfig({
-  entry: ['lib/types/index.js'],
+  entry: {
+    index: 'lib/types/index.js',
+    runner: 'lib/types/bin.js',
+  },
   outDir: 'lib',
   format: ['esm'],
   platform: 'node',

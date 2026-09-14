@@ -29,6 +29,8 @@ packages/data/kanye-pet/state.json
 .idea
 mise.toml
 dist-exe/
+/dist/
+apps/desktop/.desktop-build/
 python/sdk-runtime/src/deepseek_harness_runtime/runtime/deepseek-harness-sdk-runtime-*
 python/sdk-runtime/src/deepseek_harness_runtime/runtime/node/
 python/**/__pycache__/
@@ -43,14 +45,4 @@ apps/web/dist/
 worktrees/
 .agents/worktrees/
 .typert-*/
-desktop-tauri/dist/
-desktop-tauri/src-tauri/target/
-desktop-tauri/src-tauri/gen/
-desktop-tauri/package-lock.json
-desktop-tauri/src-tauri/Cargo.lock
-logs/
-.dsh-filess/
-.dsh-vision-router/
-packages/context/session-reference/src/types.*
-node_modules.bak-*/
-_tmp_*/
+native/system/test/bin/
