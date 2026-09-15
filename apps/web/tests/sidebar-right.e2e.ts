@@ -655,7 +655,7 @@ describe('web e2e: shipped right Sidebar', () => {
         page.off('console', collect)
         await page.setViewportSize(viewport)
         await ensureExpanded(page, column)
-        await setPanelWidth(page, Math.round(viewport.width * 0.45))
+        await setPanelWidth(page, Math.min(480, Math.round(viewport.width * 0.32)))
       }
     }, 60_000)
 

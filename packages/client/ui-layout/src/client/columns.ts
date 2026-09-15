@@ -26,7 +26,19 @@ export const RIGHTBAR_MIN = 300
 /** Maximum normal right panel width as a fraction of the frame. */
 export const RIGHTBAR_MAX_RATIO = 0.7
 /** First-open right panel preference as a fraction of the frame. */
-export const RIGHTBAR_DEFAULT_RATIO = 0.45
+export const RIGHTBAR_DEFAULT_RATIO = 0.32
+/** First-open right panel preference ceiling, so wide frames keep a svelte panel. */
+export const RIGHTBAR_DEFAULT_MAX = 480
+
+/**
+ * The right panel's first-open width: a share of the frame, capped so wide
+ * frames do not balloon the panel.
+ * @param viewport - available frame width in px.
+ * @returns the preference in px; callers still clamp it to the 300px floor.
+ */
+export function rightbarDefault(viewport: number): number {
+  return Math.round(Math.min(RIGHTBAR_DEFAULT_MAX, viewport * RIGHTBAR_DEFAULT_RATIO))
+}
 
 /**
  * Clamp a panel width into its contract range.

@@ -5,7 +5,7 @@
 import { defineStore, type EngineStoreHandle } from '@deepseek-ai/dsh-client-store'
 import type { MainPanelId } from './service.ts'
 import {
-  clampWidth, RIGHTBAR_DEFAULT_RATIO, RIGHTBAR_MAX_RATIO, RIGHTBAR_MIN,
+  clampWidth, rightbarDefault, RIGHTBAR_MAX_RATIO, RIGHTBAR_MIN,
   SIDEBAR_AUTO_COLLAPSE, SIDEBAR_DEFAULT, SIDEBAR_MAX, SIDEBAR_MIN,
 } from './columns.ts'
 
@@ -129,7 +129,7 @@ export function createLayoutStore(): EngineStoreHandle<LayoutState, LayoutAction
           d.layoutInfo.rightbarInstant = d.layoutInfo.rightbarFullscreen && !fullscreen
         }
         if (!d.layoutInfo.rightbarShown && d.layoutInfo.viewportWidth < SIDEBAR_AUTO_COLLAPSE) d.layoutInfo.narrowExpanded = false
-        d.layoutInfo.rightbar ??= Math.max(RIGHTBAR_MIN, Math.round(d.layoutInfo.viewportWidth * RIGHTBAR_DEFAULT_RATIO))
+        d.layoutInfo.rightbar ??= Math.max(RIGHTBAR_MIN, rightbarDefault(d.layoutInfo.viewportWidth))
         d.layoutInfo.rightbarShown = true
         d.layoutInfo.rightbarTrack = track
         d.layoutInfo.rightbarFullscreen = fullscreen
