@@ -158,6 +158,15 @@ async function floatByDrag(page: Page, tab: Locator): Promise<void> {
 }
 
 /**
+ * Panel width the split gestures are read at. The room rule hides the split
+ * control wherever two working halves plus the strip's other controls would not
+ * fit, which the narrow first-open default does not reach while an add control
+ * shares the strip; the gesture cases widen first rather than assert the
+ * control's availability at the default.
+ */
+const SPLIT_WIDTH = 560
+
+/**
  * Drag the frame's rightbar handle until the panel is `target` px wide (the
  * frame clamps to its own range). The handle sits on the panel's left edge, so
  * widening is a drag to the left.
@@ -380,6 +389,9 @@ describe('web e2e: shipped right Sidebar', () => {
 
       // One centre line across the strip: chip text, split, and the two panel
       // controls all sit at the same height. The add control joins the check below.
+      // The split control needs a wider panel than the first-open default while
+      // an add control shares the strip, so the gesture cases widen first.
+      await setPanelWidth(page, SPLIT_WIDTH)
       const centreY = async (selector: string): Promise<number> => {
         const box = await column.locator(selector).first().boundingBox()
         if (box === null) throw new Error(`${selector} is not rendered`)
@@ -655,7 +667,7 @@ describe('web e2e: shipped right Sidebar', () => {
         page.off('console', collect)
         await page.setViewportSize(viewport)
         await ensureExpanded(page, column)
-        await setPanelWidth(page, Math.min(480, Math.round(viewport.width * 0.32)))
+        await setPanelWidth(page, Math.min(400, Math.round(viewport.width * 0.24)))
       }
     }, 60_000)
 
@@ -752,6 +764,7 @@ describe('web e2e: shipped right Sidebar', () => {
       expect(await page.getByRole('button', { name: /folder/i }).count()).toBe(0)
 
       // Split, then dock-drag: the kit's gestures drive the store's actions.
+      await setPanelWidth(page, SPLIT_WIDTH)
       await panes.first().locator('[data-dockkit-split-button]').click()
       await expect.poll(async () => await panes.count()).toBe(2)
       await dragTo(
@@ -811,6 +824,7 @@ describe('web e2e: shipped right Sidebar', () => {
         expect(await wrap.getAttribute('aria-pressed')).toBe('true')
         await wrap.click()
         await expect.poll(async () => await wrap.getAttribute('aria-pressed')).toBe('false')
+        await setPanelWidth(fx, SPLIT_WIDTH)
         await column.locator('[data-dockkit-split-button]').first().click()
         const panes = column.locator('[data-dockkit-pane]')
         await expect.poll(async () => await panes.count()).toBe(2)
@@ -867,6 +881,7 @@ describe('web e2e: shipped right Sidebar', () => {
 
       // 2. Cross-pane move into a second pane: the tab leaves one pane's strip
       //    for another's.
+      await setPanelWidth(page, SPLIT_WIDTH)
       if (await panes.count() < 2) {
         await first.locator('[data-dockkit-split-button]').click()
         await expect.poll(async () => await panes.count()).toBe(2)
@@ -933,6 +948,7 @@ describe('web e2e: shipped right Sidebar', () => {
       expect(await column.locator('[data-dockkit-tab-close]').count()).toBe(1)
       await page.getByRole('button', { name: `Open ${SAMPLE_NAME}` }).click()
       await expect.poll(async () => await tabTitles(panes.first())).toEqual(['Files', SAMPLE_NAME])
+      await setPanelWidth(page, SPLIT_WIDTH)
       await panes.first().locator('[data-dockkit-split-button]').click()
       await expect.poll(async () => await panes.count()).toBe(2)
 

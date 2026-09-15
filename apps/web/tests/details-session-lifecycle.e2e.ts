@@ -122,6 +122,35 @@ async function dragSidebar(page: Page, target: number): Promise<void> {
   await expect.poll(() => sidebarTrack(page)).toBe(target)
 }
 
+/**
+ * Widen the right panel to `target` px through the frame's own handle. The room
+ * rule hides the split control where two halves plus the strip's controls do
+ * not fit, so a split gesture is read at a width that shows it.
+ * @param page - the page whose right panel is widened.
+ * @param target - requested panel width in px; the frame clamps it to its range.
+ */
+async function widenDetails(page: Page, target: number): Promise<void> {
+  const panel = page.locator('[data-sidebar-right-panel]')
+  const grip = await page.locator('[data-side="rightbar"]').boundingBox()
+  if (grip === null) throw new Error('Right panel resize handle is not rendered')
+  // The CSS width is the grid track the frame solves; the bounding box adds the
+  // panel's one rendered border pixel, so measuring the box would land the track
+  // one pixel short of the width this asks for.
+  const track = async (): Promise<number> =>
+    Math.round(await panel.evaluate(node => Number.parseFloat(getComputedStyle(node).width)))
+  const delta = target - await track()
+  if (Math.abs(delta) >= 1) {
+    await page.mouse.move(grip.x + grip.width / 2, grip.y + grip.height / 2)
+    await page.mouse.down()
+    try {
+      await page.mouse.move(grip.x + grip.width / 2 - delta, grip.y + grip.height / 2, { steps: 8 })
+    } finally {
+      await page.mouse.up()
+    }
+  }
+  await expect.poll(track).toBe(target)
+}
+
 describe.skipIf(MODE === 'record')('web e2e: details panel follows the current Session lifecycle', () => {
   let scaffold: WebScaffold
   let browser: Browser
@@ -212,7 +241,7 @@ describe.skipIf(MODE === 'record')('web e2e: details panel follows the current S
     const panel = column.locator('[data-sidebar-right-panel]')
     const panes = column.locator('[data-dockkit-pane]')
     // Mirrors ui-layout columns.ts first-open default: a share of the frame, capped.
-    const normalWidth = Math.min(480, Math.round(viewport.width * 0.32))
+    const normalWidth = Math.min(400, Math.round(viewport.width * 0.24))
     const normalColumns = [280, viewport.width - 280 - normalWidth, normalWidth]
     const checkpoints: string[] = ['# Recorded-session Sidebar states']
     const checkpoint = async (label: string): Promise<void> => {
@@ -253,10 +282,15 @@ describe.skipIf(MODE === 'record')('web e2e: details panel follows the current S
       errors: tripwire.pageErrors,
     })).toEqual({ filesVisible: true, errors: [] })
     await column.locator('[data-dockkit-add-tab]').click()
+    // The room rule hides the split control at the narrow first-open default
+    // while an add control shares the strip, so widen for the split and put the
+    // width back before the snapshot: every checkpoint records default geometry.
+    await widenDetails(page, 560)
     const split = column.locator('[data-dockkit-split-button]').first()
     await expect.poll(() => split.isDisabled()).toBe(false)
     await split.click()
     await expect.poll(() => panes.count()).toBe(2)
+    await widenDetails(page, normalWidth)
     await panes.first().locator('[data-dockkit-tab]').filter({ hasText: 'Files' }).click()
     await expect.poll(() => panes.first().locator('[data-files-state="tree"]').count()).toBe(1)
     const retainedA = await paneSnapshot(page)

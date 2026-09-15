@@ -26,13 +26,13 @@ export const RIGHTBAR_MIN = 300
 /** Maximum normal right panel width as a fraction of the frame. */
 export const RIGHTBAR_MAX_RATIO = 0.7
 /** First-open right panel preference as a fraction of the frame. */
-export const RIGHTBAR_DEFAULT_RATIO = 0.32
-/** First-open right panel preference ceiling, so wide frames keep a svelte panel. */
-export const RIGHTBAR_DEFAULT_MAX = 480
+export const RIGHTBAR_DEFAULT_RATIO = 0.24
+/** First-open right panel preference ceiling: wide frames keep a dock, not a half-screen. */
+export const RIGHTBAR_DEFAULT_MAX = 400
 
 /**
- * The right panel's first-open width: a share of the frame, capped so wide
- * frames do not balloon the panel.
+ * The right panel's first-open width: a share of the frame, capped so a wide
+ * frame does not open the panel over half of it.
  * @param viewport - available frame width in px.
  * @returns the preference in px; callers still clamp it to the 300px floor.
  */

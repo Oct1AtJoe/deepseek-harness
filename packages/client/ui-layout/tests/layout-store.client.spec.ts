@@ -145,13 +145,13 @@ describe('right panel', () => {
     actions.setViewportWidth(1000)
     expect(store.getSnapshot().layoutInfo.rightbar).toBeNull()
     actions.openRightbar(true, false)
-    expect(store.getSnapshot().layoutInfo.rightbar).toBe(320)
+    expect(store.getSnapshot().layoutInfo.rightbar).toBe(300)
     actions.setViewportWidth(2000)
     actions.openRightbar(true, true)
-    expect(store.getSnapshot().layoutInfo.rightbar).toBe(320)
+    expect(store.getSnapshot().layoutInfo.rightbar).toBe(300)
     actions.closeRightbar()
     actions.openRightbar(true, false)
-    expect(store.getSnapshot().layoutInfo.rightbar).toBe(320)
+    expect(store.getSnapshot().layoutInfo.rightbar).toBe(300)
   })
 
   it('keeps track and fullscreen reports independent and clears both on close', () => {

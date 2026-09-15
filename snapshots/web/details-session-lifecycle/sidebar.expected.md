@@ -10,14 +10,14 @@
   ],
   "columns": [
     280,
-    920,
-    480
+    1000,
+    400
   ],
   "columnTransition": "grid-template-columns",
   "expanded": true,
   "mode": "push",
-  "panelContentWidth": 480,
-  "panelOuterWidth": 481,
+  "panelContentWidth": 400,
+  "panelOuterWidth": 401,
   "coversViewport": false,
   "resizeHandleWidth": 8,
   "expandedDirectories": [],
@@ -58,8 +58,8 @@
   ],
   "columns": [
     280,
-    920,
-    480
+    1000,
+    400
   ],
   "columnTransition": "none",
   "expanded": true,
@@ -191,8 +191,8 @@
   ],
   "columns": [
     280,
-    920,
-    480
+    1000,
+    400
   ],
   "columnTransition": "none",
   "expanded": true,
@@ -239,14 +239,14 @@
   ],
   "columns": [
     280,
-    920,
-    480
+    1000,
+    400
   ],
   "columnTransition": "grid-template-columns",
   "expanded": true,
   "mode": "push",
-  "panelContentWidth": 480,
-  "panelOuterWidth": 481,
+  "panelContentWidth": 400,
+  "panelOuterWidth": 401,
   "coversViewport": false,
   "resizeHandleWidth": 8,
   "expandedDirectories": [
@@ -276,14 +276,14 @@
   ],
   "columns": [
     280,
-    920,
-    480
+    1000,
+    400
   ],
   "columnTransition": "grid-template-columns",
   "expanded": true,
   "mode": "push",
-  "panelContentWidth": 480,
-  "panelOuterWidth": 481,
+  "panelContentWidth": 400,
+  "panelOuterWidth": 401,
   "coversViewport": false,
   "resizeHandleWidth": 8,
   "expandedDirectories": [],
