@@ -383,9 +383,38 @@ describe('SessionProjectionCache listing read', () => {
 
     expect(cache.cachedSnapshot(seededHeader, SessionLogOffset(2))?.values['cache-test/marks'])
       .toEqual({ marks: ['seed'] })
+    expect(cache.cachedSnapshot(seededHeader)?.values['cache-test/marks'])
+      .toEqual({ marks: ['seed'] })
     expect(cache.cachedSnapshot(seededHeader, SessionLogOffset(1))).toBeUndefined()
     expect(() => cache.cachedSnapshot(headerOf(id), SessionLogOffset(1)))
       .toThrow('unseeded projection-cache identity inherited event count must be 0')
+  })
+
+  it('cold list without cut is a best-effort hint; refuses stale cut once known (residual ambiguity)', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'dsh-projcache-'))
+    roots.push(root)
+    const id = SessionId('reseeded-slot')
+    await seedRecord(
+      root,
+      id,
+      { 'cache-test/marks': { ver: 1, seq: SessionSeq(1), val: { marks: ['cut-A'] } } },
+      {
+        formatVersion: SESSION_FORMAT_VERSION,
+        createdAt: 0,
+        isSeeded: true,
+        inheritedEventCount: SessionLogOffset(2),
+      },
+    )
+    const { cache } = await harness({ root })
+    const seededHeader = { ...headerOf(id), isSeeded: true }
+
+    // Cold listing without cut: serves cut A checkpoint as a best-effort hint.
+    expect(cache.cachedSnapshot(seededHeader)?.values['cache-test/marks'])
+      .toEqual({ marks: ['cut-A'] })
+
+    // Session re-seeded to cut B: caller that knows cut B (5) refuses cut A's checkpoint.
+    expect(cache.cachedSnapshot(seededHeader, SessionLogOffset(5))).toBeUndefined()
+    expect(cache.cachedPredecessorTitle(seededHeader, SessionLogOffset(5))).toBeUndefined()
   })
 
   it('serves a creation-time checkpoint at the before-first-event cursor', async () => {

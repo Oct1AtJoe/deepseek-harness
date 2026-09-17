@@ -39,7 +39,7 @@ import type { CheckpointIdentity, CheckpointRecord } from './spec.ts'
 type CurrentCheckpointIdentity = CheckpointIdentity & {
   formatVersion: number
   isSeeded: boolean
-  inheritedEventCount: SessionLogOffset
+  inheritedEventCount?: SessionLogOffset
 }
 
 const PREDECESSOR_TITLE_KEY = 'title' as Extract<keyof SessionProjectionMap, string>
@@ -132,22 +132,27 @@ export class SessionProjectionCache extends Service {
    * rows (version-matching keys only), each cut carried with its watermark so
    * a client value store can seed under its higher-seq-wins rule — as stale
    * as the last durable checkpoint but never wrong, and never from an
-   * unrelated log (the caller's header is the identity witness). Fresher
-   * paths (the history tail baseline) supersede these values whenever a
-   * session is actually opened.
+   * unrelated log (the caller's header is the identity witness).
+   *
+   * When `inheritedEventCount` is omitted (e.g. cold header-only listings),
+   * the lookup is a best-effort hint read matching on `createdAt`, `cwd`,
+   * and `isSeeded`. This may serve a previous cut's values if a session was
+   * re-seeded in place before opening. Strict callers passing the exact cut
+   * continue to reject mismatched checkpoints. Fresher paths (the history tail
+   * baseline) supersede these values whenever a session is actually opened.
    * @param meta - the listed session's header (identity witness; no log read).
-   * @param inheritedEventCount - exact inherited prefix length that completes
-   * the checkpoint identity.
+   * @param inheritedEventCount - optional exact inherited prefix length that completes
+   * the checkpoint identity. Omit when the cut is unknown (e.g. cold header-only listing).
    * @param keys - optional projection keys required by the caller's audience.
    * @returns the cut (`asOfSeq` = lowest served-row watermark), or
    *   `undefined` when no usable row exists for this lifecycle.
    */
   cachedSnapshot(
     meta: SessionHeader,
-    inheritedEventCount: SessionLogOffset,
+    inheritedEventCount?: SessionLogOffset,
     keys?: readonly Extract<keyof SessionProjectionMap, string>[],
   ): ProjectionSnapshot | undefined {
-    const record = this.recordFor(meta.id, identityOf(meta, inheritedEventCount))
+    const record = this.recordFor(meta.id, identityOf(meta, inheritedEventCount) as CurrentCheckpointIdentity)
     if (record === undefined) return undefined
     return this.viewRecord(record, keys)
   }
@@ -158,12 +163,14 @@ export class SessionProjectionCache extends Service {
    * The authoritative Session header supplies the lifecycle identity. A cache
    * checkpoint can lag that log but cannot lead it because writes flush the
    * log first, so a matching predecessor title is a genuine (possibly stale)
-   * fact from this Session. The registry still requires the current title
-   * projection's row version and schema. No other predecessor projection is
-   * exposed: format normalization can change their current meaning, and the
-   * strict {@link cachedSnapshot} / hydration paths continue to reject them.
+   * fact from this Session. When `inheritedEventCount` is omitted, this is a
+   * best-effort hint read matching on the lifecycle identity fields. The registry
+   * still requires the current title projection's row version and schema. No other
+   * predecessor projection is exposed: format normalization can change their
+   * current meaning, and the strict {@link cachedSnapshot} / hydration paths
+   * continue to reject them.
    * @param meta - authoritative listed Session header.
-   * @param inheritedEventCount - exact inherited cut completing the lifecycle identity.
+   * @param inheritedEventCount - optional exact inherited cut completing the lifecycle identity. Omit for cold listing hint reads.
    * @returns a title-only checkpoint view with `asOfSeq: -1`, or `undefined`
    *   when the record is current, newer, unrelated, missing, or incompatible
    *   with the title unit. The sentinel avoids reusing a sequence that a
@@ -171,11 +178,11 @@ export class SessionProjectionCache extends Service {
    */
   cachedPredecessorTitle(
     meta: SessionHeader,
-    inheritedEventCount: SessionLogOffset,
+    inheritedEventCount?: SessionLogOffset,
   ): ProjectionSnapshot | undefined {
     const expected = identityOf(meta, inheritedEventCount)
     const record = this.requireTable().get(meta.id)
-    if (record === undefined || !predecessorIdentityMatches(record.identity, expected)) return undefined
+    if (record === undefined || !predecessorIdentityMatches(record.identity, expected as CurrentCheckpointIdentity)) return undefined
     const title = this.viewRecord(record, [PREDECESSOR_TITLE_KEY])
     return title === undefined ? undefined : { ...title, asOfSeq: -1 }
   }
@@ -394,8 +401,16 @@ export class SessionProjectionCache extends Service {
 /** Project a header onto the identity fields a record is bound to. */
 function identityOf(
   header: SessionHeader,
-  inheritedEventCount: SessionLogOffset,
+  inheritedEventCount?: SessionLogOffset,
 ): CurrentCheckpointIdentity {
+  if (inheritedEventCount === undefined) {
+    return {
+      formatVersion: header.version,
+      createdAt: header.createdAt,
+      ...header.cwd === undefined ? {} : { cwd: header.cwd },
+      isSeeded: header.isSeeded,
+    }
+  }
   const cut = SessionLogOffset(inheritedEventCount)
   if (!header.isSeeded && cut !== 0) {
     throw new Error('unseeded projection-cache identity inherited event count must be 0')
@@ -439,7 +454,7 @@ function lifecycleIdentityMatches(
   return stored.createdAt === expected.createdAt
     && stored.cwd === expected.cwd
     && (stored.isSeeded ?? false) === expected.isSeeded
-    && (stored.inheritedEventCount ?? 0) === expected.inheritedEventCount
+    && (expected.inheritedEventCount === undefined || (stored.inheritedEventCount ?? 0) === expected.inheritedEventCount)
 }
 
 export default SessionProjectionCache
